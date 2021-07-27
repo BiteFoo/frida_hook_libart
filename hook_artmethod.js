@@ -1,40 +1,52 @@
 
 const STD_STRING_SIZE = 3 * Process.pointerSize;
-class StdString {
-    constructor() {
-        this.handle = Memory.alloc(STD_STRING_SIZE);
-    }
+// class StdString {
+//     constructor() {
+//         this.handle = Memory.alloc(STD_STRING_SIZE);
+//     }
 
-    dispose() {
-        const [data, isTiny] = this._getData();
-        if (!isTiny) {
-            Java.api.$delete(data);
-        }
-    }
+//     dispose() {
+//         const [data, isTiny] = this._getData();
+//         if (!isTiny) {
+//             Java.api.$delete(data);
+//         }
+//     }
 
-    disposeToString() {
-        const result = this.toString();
-        this.dispose();
-        return result;
-    }
+//     disposeToString() {
+//         const result = this.toString();
+//         this.dispose();
+//         return result;
+//     }
 
-    toString() {
-        const [data] = this._getData();
-        return data.readUtf8String();
-    }
+//     toString() {
+//         const [data] = this._getData();
+//         return data.readUtf8String();
+//     }
 
-    _getData() {
-        const str = this.handle;
-        const isTiny = (str.readU8() & 1) === 0;
-        const data = isTiny ? str.add(1) : str.add(2 * Process.pointerSize).readPointer();
-        return [data, isTiny];
-    }
-}
+//     _getData() {
+//         const str = this.handle;
+//         const isTiny = (str.readU8() & 1) === 0;
+//         const data = isTiny ? str.add(1) : str.add(2 * Process.pointerSize).readPointer();
+//         return [data, isTiny];
+//     }
+// }
 
+// function prettyMethod(method_id, withSignature) {
+//     const result = new StdString();
+//     Java.api['art::ArtMethod::PrettyMethod'](result, method_id, withSignature ? 1 : 0);
+//     return result.disposeToString();
+// }
 function prettyMethod(method_id, withSignature) {
-    const result = new StdString();
+    // const result = new StdString(); // 这个方法在frida 12.11.11 上无法使用，所以这里我将这个类注释掉了
+    var result = Memory.alloc(STD_STRING_SIZE);
     Java.api['art::ArtMethod::PrettyMethod'](result, method_id, withSignature ? 1 : 0);
-    return result.disposeToString();
+    //return result.disposeToString();
+    const str = result
+    const isTiny = (str.readU8() & 1) === 0;
+    const data = isTiny ? str.add(1) : str.add(2 * Process.pointerSize).readPointer();
+    var info = data.readUtf8String();
+    // console.log("--> prettyMethod info: " + info)
+    return info
 }
 
 function hook_dlopen(module_name, fun) {
